@@ -14,13 +14,14 @@ func loadQuery(name string) string {
 }
 
 var (
-	queryGetAll     = loadQuery("get_all.sql")
-	queryGetByID    = loadQuery("get_by_id.sql")
-	queryCreate     = loadQuery("create.sql")
-	queryUpdate     = loadQuery("update.sql")
-	queryPublish    = loadQuery("publish.sql")
-	queryDelete     = loadQuery("delete.sql")
-	queryDeleteTags = loadQuery("delete_tags.sql")
-	queryInsertTag  = loadQuery("insert_tag.sql")
+	queryGetAll       = loadQuery("get_all.sql")
+	queryGetByID      = loadQuery("get_by_id.sql")
+	queryGetPublished = loadQuery("get_published.sql")
+	queryCreate       = loadQuery("create.sql")
+	queryUpdate       = loadQuery("update.sql")
+	queryPublish      = loadQuery("publish.sql")
+	queryDelete       = loadQuery("delete.sql")
+	queryDeleteTags   = loadQuery("delete_tags.sql")
+	queryInsertTag    = loadQuery("insert_tag.sql")
 )
 

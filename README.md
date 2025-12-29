@@ -138,8 +138,28 @@ internal/
 
 - `POST /api/export` で静的ファイルを生成
 - Markdown → HTML 変換
-- 内蔵テンプレートを使用
 - 生成後、出力先を GitHub Pages リポジトリとして手動 push
+
+### テンプレート
+
+**優先順位：**
+
+1. 出力先に `_templates/` があれば → カスタムテンプレート使用
+2. なければ → CMS 内蔵のデフォルトテンプレート使用
+
+**カスタムテンプレートを使う場合：**
+
+```
+{export_dir}/
+├── _templates/
+│   ├── base.html      ← ベーステンプレート（必須）
+│   ├── article.html   ← 記事個別ページ（必須）
+│   └── index.html     ← 一覧ページ（必須）
+├── index.html         ← 生成される
+└── posts/
+```
+
+テンプレートは Go の `html/template` 形式。
 
 ### 出力先
 

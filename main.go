@@ -6,6 +6,7 @@ import (
 	"cms/db"
 	"cms/internal/article"
 	"cms/internal/category"
+	"cms/internal/export"
 	"cms/internal/tag"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,9 @@ func main() {
 
 		articleHandler := article.NewHandler(db.DB)
 		articleHandler.RegisterRoutes(api)
+
+		exportHandler := export.NewHandler(db.DB)
+		exportHandler.RegisterRoutes(api)
 	}
 
 	r.Run(":8080")

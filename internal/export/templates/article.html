@@ -1,0 +1,17 @@
+<article>
+    <h1>{{.Article.Title}}</h1>
+    <div class="meta">
+        <time>{{.Article.PublishedAt.Format "2006-01-02"}}</time>
+        {{if .Article.Tags}}
+        <span class="tags">
+            {{range .Article.Tags}}
+            <a href="/tags/{{.Slug}}.html">#{{.Name}}</a>
+            {{end}}
+        </span>
+        {{end}}
+    </div>
+    <div class="content">
+        {{.Content}}
+    </div>
+</article>
+

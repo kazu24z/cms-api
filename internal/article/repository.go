@@ -42,6 +42,16 @@ func (r *Repository) GetByID(id int64) (*Article, error) {
 	return &articles[0], nil
 }
 
+func (r *Repository) GetPublished() ([]Article, error) {
+	rows, err := r.db.Query(queryGetPublished)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return r.scanArticlesWithTags(rows)
+}
+
 func (r *Repository) scanArticlesWithTags(rows *sql.Rows) ([]Article, error) {
 	articleMap := make(map[int64]*Article)
 	var articleOrder []int64
