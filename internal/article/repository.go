@@ -52,6 +52,26 @@ func (r *Repository) GetPublished() ([]Article, error) {
 	return r.scanArticlesWithTags(rows)
 }
 
+func (r *Repository) GetByCategory(categoryID int64) ([]Article, error) {
+	rows, err := r.db.Query(queryGetByCategory, categoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return r.scanArticlesWithTags(rows)
+}
+
+func (r *Repository) GetByTag(tagID int64) ([]Article, error) {
+	rows, err := r.db.Query(queryGetByTag, tagID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return r.scanArticlesWithTags(rows)
+}
+
 func (r *Repository) scanArticlesWithTags(rows *sql.Rows) ([]Article, error) {
 	articleMap := make(map[int64]*Article)
 	var articleOrder []int64

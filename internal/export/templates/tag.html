@@ -1,0 +1,12 @@
+<h1>タグ: {{.Tag.Name}}</h1>
+<ul class="article-list">
+    {{range .Articles}}
+    <li>
+        <a href="/posts/{{.Slug}}.html">{{.Title}}</a>
+        {{if .PublishedAt}}
+        <time>{{.PublishedAt.Format "2006-01-02"}}</time>
+        {{end}}
+    </li>
+    {{end}}
+</ul>
+
