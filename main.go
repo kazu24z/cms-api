@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"cms/db"
+	"cms/internal/category"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,6 +26,13 @@ func main() {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	// API routes
+	api := r.Group("/api")
+	{
+		categoryHandler := category.NewHandler(db.DB)
+		categoryHandler.RegisterRoutes(api)
+	}
 
 	r.Run(":8080")
 }

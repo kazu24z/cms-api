@@ -14,6 +14,35 @@ Go によるシンプルな CMS API サーバー
 - SQLite3
 - Gin (Web フレームワーク)
 
+## アーキテクチャ
+
+### レイヤー構成
+
+```
+Handler → Service → Repository → DB
+```
+
+- **Handler**: HTTP リクエスト/レスポンスの処理
+- **Service**: ビジネスロジック
+- **Repository**: DB アクセス
+
+### ルール
+
+- Handler は Repository を直接触らない
+- Handler は Service のみを呼び出す
+- Service は Repository を通じて DB にアクセスする
+
+### ディレクトリ構成
+
+```
+internal/
+  {domain}/
+    model.go       # エンティティ定義
+    repository.go  # DBアクセス
+    service.go     # ビジネスロジック
+    handler.go     # HTTPハンドラ
+```
+
 ## エンティティ設計
 
 ### User（ユーザー）
