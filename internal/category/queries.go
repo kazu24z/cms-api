@@ -20,4 +20,3 @@ var (
 	queryUpdate  = loadQuery("update.sql")
 	queryDelete  = loadQuery("delete.sql")
 )
-
