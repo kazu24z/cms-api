@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"cms/db"
+	"cms/internal/article"
 	"cms/internal/category"
 	"cms/internal/tag"
 
@@ -36,6 +37,9 @@ func main() {
 
 		tagHandler := tag.NewHandler(db.DB)
 		tagHandler.RegisterRoutes(api)
+
+		articleHandler := article.NewHandler(db.DB)
+		articleHandler.RegisterRoutes(api)
 	}
 
 	r.Run(":8080")
