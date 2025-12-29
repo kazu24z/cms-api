@@ -14,7 +14,7 @@ func NewRepository(db *sql.DB) *Repository {
 }
 
 func (r *Repository) GetAll() ([]Tag, error) {
-	rows, err := r.db.Query("SELECT id, name, slug, created_at FROM tags ORDER BY id DESC")
+	rows, err := r.db.Query(queryGetAll)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +33,7 @@ func (r *Repository) GetAll() ([]Tag, error) {
 
 func (r *Repository) GetByID(id int64) (*Tag, error) {
 	var t Tag
-	err := r.db.QueryRow("SELECT id, name, slug, created_at FROM tags WHERE id = ?", id).
-		Scan(&t.ID, &t.Name, &t.Slug, &t.CreatedAt)
+	err := r.db.QueryRow(queryGetByID, id).Scan(&t.ID, &t.Name, &t.Slug, &t.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -42,10 +41,7 @@ func (r *Repository) GetByID(id int64) (*Tag, error) {
 }
 
 func (r *Repository) Create(name, slug string) (*Tag, error) {
-	result, err := r.db.Exec(
-		"INSERT INTO tags (name, slug, created_at) VALUES (?, ?, ?)",
-		name, slug, time.Now(),
-	)
+	result, err := r.db.Exec(queryCreate, name, slug, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -59,10 +55,7 @@ func (r *Repository) Create(name, slug string) (*Tag, error) {
 }
 
 func (r *Repository) Update(id int64, name, slug string) (*Tag, error) {
-	_, err := r.db.Exec(
-		"UPDATE tags SET name = ?, slug = ? WHERE id = ?",
-		name, slug, id,
-	)
+	_, err := r.db.Exec(queryUpdate, name, slug, id)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +64,6 @@ func (r *Repository) Update(id int64, name, slug string) (*Tag, error) {
 }
 
 func (r *Repository) Delete(id int64) error {
-	_, err := r.db.Exec("DELETE FROM tags WHERE id = ?", id)
+	_, err := r.db.Exec(queryDelete, id)
 	return err
 }

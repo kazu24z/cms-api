@@ -1,0 +1,2 @@
+DELETE FROM tags WHERE id = ?
+
