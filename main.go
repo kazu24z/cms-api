@@ -5,6 +5,7 @@ import (
 
 	"cms/db"
 	"cms/internal/category"
+	"cms/internal/tag"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,6 +33,9 @@ func main() {
 	{
 		categoryHandler := category.NewHandler(db.DB)
 		categoryHandler.RegisterRoutes(api)
+
+		tagHandler := tag.NewHandler(db.DB)
+		tagHandler.RegisterRoutes(api)
 	}
 
 	r.Run(":8080")
