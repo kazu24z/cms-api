@@ -30,7 +30,7 @@ type CreateRequest struct {
 	Slug       string  `json:"slug" binding:"required"`
 	Content    string  `json:"content"`
 	Status     string  `json:"status"`
-	AuthorID   *int64  `json:"author_id"`
+	AuthorID   int64   `json:"author_id" binding:"required"`
 	CategoryID *int64  `json:"category_id"`
 	TagIDs     []int64 `json:"tag_ids"`
 }

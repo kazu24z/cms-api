@@ -86,7 +86,7 @@ func (r *Repository) scanArticlesWithTags(rows *sql.Rows) ([]Article, error) {
 	return articles, nil
 }
 
-func (r *Repository) Create(title, slug, content, status string, authorID, categoryID *int64, tagIDs []int64) (*Article, error) {
+func (r *Repository) Create(title, slug, content, status string, authorID int64, categoryID *int64, tagIDs []int64) (*Article, error) {
 	now := time.Now()
 	result, err := r.db.Exec(queryCreate, title, slug, content, status, authorID, categoryID, now, now)
 	if err != nil {

@@ -18,7 +18,7 @@ func (s *Service) GetByID(id int64) (*Article, error) {
 	return s.repo.GetByID(id)
 }
 
-func (s *Service) Create(title, slug, content, status string, authorID, categoryID *int64, tagIDs []int64) (*Article, error) {
+func (s *Service) Create(title, slug, content, status string, authorID int64, categoryID *int64, tagIDs []int64) (*Article, error) {
 	if status == "" {
 		status = "draft"
 	}
