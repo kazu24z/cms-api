@@ -1,0 +1,13 @@
+# Binary
+cms
+
+# Database
+*.db
+
+# Config (may contain local paths)
+config.json
+
+# IDE
+.idea/
+.vscode/
+

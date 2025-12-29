@@ -1,0 +1,162 @@
+# CMS API Server
+
+Go によるシンプルな CMS API サーバー
+
+## コンセプト
+
+- ローカル専用の記事管理システム
+- 記事は Markdown で執筆
+- 静的 HTML を生成し、GitHub Pages へ手動デプロイ
+
+## 技術スタック
+
+- Go
+- SQLite3
+- Gin (Web フレームワーク)
+
+## エンティティ設計
+
+### User（ユーザー）
+
+| カラム        | 型       | 説明                       |
+| ------------- | -------- | -------------------------- |
+| id            | INTEGER  | PK                         |
+| email         | TEXT     | メールアドレス（ユニーク） |
+| password_hash | TEXT     | パスワードハッシュ         |
+| name          | TEXT     | 表示名                     |
+| created_at    | DATETIME | 作成日時                   |
+| updated_at    | DATETIME | 更新日時                   |
+
+### Article（記事）
+
+| カラム       | 型       | 説明                      |
+| ------------ | -------- | ------------------------- |
+| id           | INTEGER  | PK                        |
+| title        | TEXT     | タイトル                  |
+| slug         | TEXT     | URL スラッグ（ユニーク）  |
+| content      | TEXT     | 本文（Markdown）          |
+| status       | TEXT     | draft / published         |
+| author_id    | INTEGER  | FK → User                 |
+| category_id  | INTEGER  | FK → Category（nullable） |
+| published_at | DATETIME | 公開日時                  |
+| created_at   | DATETIME | 作成日時                  |
+| updated_at   | DATETIME | 更新日時                  |
+
+### Category（カテゴリ）
+
+| カラム     | 型       | 説明                     |
+| ---------- | -------- | ------------------------ |
+| id         | INTEGER  | PK                       |
+| name       | TEXT     | カテゴリ名               |
+| slug       | TEXT     | URL スラッグ（ユニーク） |
+| created_at | DATETIME | 作成日時                 |
+
+### Tag（タグ）
+
+| カラム     | 型       | 説明                     |
+| ---------- | -------- | ------------------------ |
+| id         | INTEGER  | PK                       |
+| name       | TEXT     | タグ名（ユニーク）       |
+| slug       | TEXT     | URL スラッグ（ユニーク） |
+| created_at | DATETIME | 作成日時                 |
+
+### ArticleTag（記事とタグの中間テーブル）
+
+| カラム     | 型      | 説明         |
+| ---------- | ------- | ------------ |
+| article_id | INTEGER | FK → Article |
+| tag_id     | INTEGER | FK → Tag     |
+
+## API エンドポイント
+
+### 記事
+
+| Method | Path              | 説明     |
+| ------ | ----------------- | -------- |
+| GET    | /api/articles     | 記事一覧 |
+| GET    | /api/articles/:id | 記事取得 |
+| POST   | /api/articles     | 記事作成 |
+| PUT    | /api/articles/:id | 記事更新 |
+| DELETE | /api/articles/:id | 記事削除 |
+
+### カテゴリ
+
+| Method | Path                | 説明         |
+| ------ | ------------------- | ------------ |
+| GET    | /api/categories     | カテゴリ一覧 |
+| POST   | /api/categories     | カテゴリ作成 |
+| PUT    | /api/categories/:id | カテゴリ更新 |
+| DELETE | /api/categories/:id | カテゴリ削除 |
+
+### タグ
+
+| Method | Path          | 説明     |
+| ------ | ------------- | -------- |
+| GET    | /api/tags     | タグ一覧 |
+| POST   | /api/tags     | タグ作成 |
+| PUT    | /api/tags/:id | タグ更新 |
+| DELETE | /api/tags/:id | タグ削除 |
+
+### エクスポート（静的サイト生成）
+
+| Method | Path        | 説明                                               |
+| ------ | ----------- | -------------------------------------------------- |
+| POST   | /api/export | published 記事を HTML 化して出力ディレクトリに生成 |
+
+## 静的サイト生成
+
+### 概要
+
+- `POST /api/export` で静的ファイルを生成
+- Markdown → HTML 変換
+- 内蔵テンプレートを使用
+- 生成後、出力先を GitHub Pages リポジトリとして手動 push
+
+### 出力先
+
+設定ファイル（`config.json`）で指定：
+
+```json
+{
+  "export_dir": "/home/kazu/dev/my-blog"
+}
+```
+
+### 生成されるページ
+
+| ページ         | パス                      | 優先度 |
+| -------------- | ------------------------- | ------ |
+| 記事個別       | `/posts/{slug}.html`      | Phase1 |
+| 記事一覧       | `/index.html`             | Phase1 |
+| カテゴリ別一覧 | `/categories/{slug}.html` | Phase2 |
+| タグ別一覧     | `/tags/{slug}.html`       | Phase2 |
+
+### 出力ディレクトリ構成
+
+```
+{export_dir}/
+├── index.html
+├── posts/
+│   ├── hello-world.html
+│   └── second-post.html
+├── categories/
+│   └── tech.html
+└── tags/
+    └── go.html
+```
+
+## 設定ファイル
+
+`config.json`：
+
+```json
+{
+  "export_dir": "./dist"
+}
+```
+
+## 起動方法
+
+```bash
+go run main.go
+```
