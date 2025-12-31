@@ -2,6 +2,9 @@
     <h1>{{.Article.Title}}</h1>
     <div class="meta">
         <time>{{.Article.PublishedAt.Format "2006-01-02"}}</time>
+        {{if ne (.Article.UpdatedAt.Format "2006-01-02") (.Article.PublishedAt.Format "2006-01-02")}}
+        <span class="updated">更新: {{.Article.UpdatedAt.Format "2006-01-02"}}</span>
+        {{end}}
         {{if .Article.Tags}}
         <span class="tags">
             {{range .Article.Tags}}
