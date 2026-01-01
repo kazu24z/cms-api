@@ -1,11 +1,31 @@
-<h1>Articles</h1>
-<ul class="article-list">
-  {{range .Articles}}
-  <li>
-    <a href="/posts/{{.Slug}}.html">{{.Title}}</a>
-    {{if .PublishedAt}}
-    <time>{{.PublishedAt.Format "2006-01-02"}}</time>
+<div class="space-y-8">
+  <header class="mb-12">
+    <h1 class="font-serif text-3xl font-bold text-text mb-2">記事一覧</h1>
+    <p class="text-muted">最新の投稿</p>
+  </header>
+
+  <div class="space-y-6">
+    {{range .Articles}}
+    <article class="group p-6 rounded-lg border border-border bg-surface/50 hover:bg-surface hover:border-accent/30 transition-all duration-300">
+      <a href="posts/{{.Slug}}.html" class="block">
+        <h2 class="font-serif text-xl font-bold text-text group-hover:text-accent transition-colors duration-200 mb-2">
+          {{.Title}}
+        </h2>
+        <div class="flex items-center gap-4 text-sm text-muted">
+          <time>{{.PublishedAt.Format "2006年1月2日"}}</time>
+          {{if .Tags}}
+          <div class="flex gap-2">
+            {{range .Tags}}
+            <span class="text-purple">#{{.Name}}</span>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
+      </a>
+    </article>
+    {{else}}
+    <p class="text-muted text-center py-12">まだ記事がありません</p>
     {{end}}
-  </li>
-  {{end}}
-</ul>
+  </div>
+</div>
+
