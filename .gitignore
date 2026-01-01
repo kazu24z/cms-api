@@ -12,3 +12,5 @@ config.json
 .vscode/
 .cursor/
 
+# Uploaded files
+uploads/

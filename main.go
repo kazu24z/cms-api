@@ -7,6 +7,7 @@ import (
 	"cms/internal/article"
 	"cms/internal/category"
 	"cms/internal/export"
+	"cms/internal/image"
 	"cms/internal/tag"
 
 	"github.com/gin-contrib/cors"
@@ -53,6 +54,9 @@ func main() {
 
 		exportHandler := export.NewHandler(db.DB)
 		exportHandler.RegisterRoutes(api)
+
+		imageHandler := image.NewHandler("./uploads")
+		imageHandler.RegisterRoutes(api)
 	}
 
 	r.Run(":8080")

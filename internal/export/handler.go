@@ -30,7 +30,10 @@ func (h *Handler) Export(c *gin.Context) {
 		return
 	}
 
-	cfg := Config{ExportDir: req.ExportDir}
+	cfg := Config{
+		ExportDir: req.ExportDir,
+		UploadDir: "./uploads",
+	}
 	if err := h.service.Export(cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
