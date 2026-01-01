@@ -4,34 +4,37 @@ import (
 	"database/sql"
 	"net/http"
 
+	"cms/internal/settings"
+
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	service *Service
+	service         *Service
+	settingsService *settings.Service
 }
 
 func NewHandler(db *sql.DB) *Handler {
-	return &Handler{service: NewService(db)}
+	return &Handler{
+		service:         NewService(db),
+		settingsService: settings.NewService(),
+	}
 }
 
 func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	r.POST("/export", h.Export)
 }
 
-type ExportRequest struct {
-	ExportDir string `json:"export_dir" binding:"required"`
-}
-
 func (h *Handler) Export(c *gin.Context) {
-	var req ExportRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// 設定からexport_dirを取得
+	s, err := h.settingsService.Get()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load settings: " + err.Error()})
 		return
 	}
 
 	cfg := Config{
-		ExportDir: req.ExportDir,
+		ExportDir: s.ExportDir,
 		UploadDir: "./uploads",
 	}
 	if err := h.service.Export(cfg); err != nil {
@@ -39,5 +42,5 @@ func (h *Handler) Export(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "export completed", "export_dir": req.ExportDir})
+	c.JSON(http.StatusOK, gin.H{"message": "export completed", "export_dir": s.ExportDir})
 }

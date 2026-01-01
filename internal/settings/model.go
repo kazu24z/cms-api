@@ -1,0 +1,5 @@
+package settings
+
+type Settings struct {
+	ExportDir string `json:"export_dir"`
+}
