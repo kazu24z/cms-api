@@ -31,6 +31,7 @@ func (h *Handler) Get(c *gin.Context) {
 
 type UpdateRequest struct {
 	ExportDir string `json:"export_dir" binding:"required"`
+	SiteTitle string `json:"site_title"`
 }
 
 func (h *Handler) Update(c *gin.Context) {
@@ -42,6 +43,7 @@ func (h *Handler) Update(c *gin.Context) {
 
 	settings := &Settings{
 		ExportDir: req.ExportDir,
+		SiteTitle: req.SiteTitle,
 	}
 
 	if err := h.service.Update(settings); err != nil {

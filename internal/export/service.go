@@ -41,6 +41,7 @@ func NewService(db *sql.DB) *Service {
 type Config struct {
 	ExportDir string `json:"export_dir"`
 	UploadDir string `json:"upload_dir"`
+	SiteTitle string `json:"site_title"`
 }
 
 func (s *Service) Export(cfg Config) error {
@@ -71,23 +72,23 @@ func (s *Service) Export(cfg Config) error {
 
 	// 記事個別ページ生成
 	for _, a := range articles {
-		if err := s.exportArticle(cfg.ExportDir, tmpl, a); err != nil {
+		if err := s.exportArticle(cfg, tmpl, a); err != nil {
 			return err
 		}
 	}
 
 	// 一覧ページ生成
-	if err := s.exportIndex(cfg.ExportDir, tmpl, articles); err != nil {
+	if err := s.exportIndex(cfg, tmpl, articles); err != nil {
 		return err
 	}
 
 	// カテゴリ別一覧ページ生成
-	if err := s.exportCategories(cfg.ExportDir, tmpl); err != nil {
+	if err := s.exportCategories(cfg, tmpl); err != nil {
 		return err
 	}
 
 	// タグ別一覧ページ生成
-	if err := s.exportTags(cfg.ExportDir, tmpl); err != nil {
+	if err := s.exportTags(cfg, tmpl); err != nil {
 		return err
 	}
 
@@ -114,7 +115,7 @@ func (s *Service) loadTemplates(exportDir string) (*template.Template, error) {
 	return template.ParseFS(defaultTemplateFS, "templates/*.html")
 }
 
-func (s *Service) exportArticle(exportDir string, tmpl *template.Template, a article.Article) error {
+func (s *Service) exportArticle(cfg Config, tmpl *template.Template, a article.Article) error {
 	// 画像パスを変換: http://localhost:8080/api/images/ → ../images/ (postsフォルダからの相対パス)
 	content := strings.ReplaceAll(a.Content, "http://localhost:8080/api/images/", "../images/")
 
@@ -137,19 +138,20 @@ func (s *Service) exportArticle(exportDir string, tmpl *template.Template, a art
 	// ベーステンプレート
 	var finalBuf bytes.Buffer
 	err = tmpl.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
-		"Title":   a.Title,
-		"Content": template.HTML(articleBuf.String()),
+		"Title":     a.Title,
+		"SiteTitle": cfg.SiteTitle,
+		"Content":   template.HTML(articleBuf.String()),
 	})
 	if err != nil {
 		return err
 	}
 
 	// ファイル書き出し
-	path := filepath.Join(exportDir, "posts", a.Slug+".html")
+	path := filepath.Join(cfg.ExportDir, "posts", a.Slug+".html")
 	return os.WriteFile(path, finalBuf.Bytes(), 0644)
 }
 
-func (s *Service) exportIndex(exportDir string, tmpl *template.Template, articles []article.Article) error {
+func (s *Service) exportIndex(cfg Config, tmpl *template.Template, articles []article.Article) error {
 	// 一覧テンプレート
 	var indexBuf bytes.Buffer
 	err := tmpl.ExecuteTemplate(&indexBuf, "index.html", map[string]interface{}{
@@ -162,19 +164,20 @@ func (s *Service) exportIndex(exportDir string, tmpl *template.Template, article
 	// ベーステンプレート
 	var finalBuf bytes.Buffer
 	err = tmpl.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
-		"Title":   "Blog",
-		"Content": template.HTML(indexBuf.String()),
+		"Title":     cfg.SiteTitle,
+		"SiteTitle": cfg.SiteTitle,
+		"Content":   template.HTML(indexBuf.String()),
 	})
 	if err != nil {
 		return err
 	}
 
 	// ファイル書き出し
-	path := filepath.Join(exportDir, "index.html")
+	path := filepath.Join(cfg.ExportDir, "index.html")
 	return os.WriteFile(path, finalBuf.Bytes(), 0644)
 }
 
-func (s *Service) exportCategories(exportDir string, tmpl *template.Template) error {
+func (s *Service) exportCategories(cfg Config, tmpl *template.Template) error {
 	categories, err := s.categoryRepo.GetAll()
 	if err != nil {
 		return err
@@ -204,15 +207,16 @@ func (s *Service) exportCategories(exportDir string, tmpl *template.Template) er
 		// ベーステンプレート
 		var finalBuf bytes.Buffer
 		err = tmpl.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
-			"Title":   "カテゴリ: " + c.Name,
-			"Content": template.HTML(categoryBuf.String()),
+			"Title":     "カテゴリ: " + c.Name,
+			"SiteTitle": cfg.SiteTitle,
+			"Content":   template.HTML(categoryBuf.String()),
 		})
 		if err != nil {
 			return err
 		}
 
 		// ファイル書き出し
-		path := filepath.Join(exportDir, "categories", c.Slug+".html")
+		path := filepath.Join(cfg.ExportDir, "categories", c.Slug+".html")
 		if err := os.WriteFile(path, finalBuf.Bytes(), 0644); err != nil {
 			return err
 		}
@@ -221,7 +225,7 @@ func (s *Service) exportCategories(exportDir string, tmpl *template.Template) er
 	return nil
 }
 
-func (s *Service) exportTags(exportDir string, tmpl *template.Template) error {
+func (s *Service) exportTags(cfg Config, tmpl *template.Template) error {
 	tags, err := s.tagRepo.GetAll()
 	if err != nil {
 		return err
@@ -251,15 +255,16 @@ func (s *Service) exportTags(exportDir string, tmpl *template.Template) error {
 		// ベーステンプレート
 		var finalBuf bytes.Buffer
 		err = tmpl.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
-			"Title":   "タグ: " + t.Name,
-			"Content": template.HTML(tagBuf.String()),
+			"Title":     "タグ: " + t.Name,
+			"SiteTitle": cfg.SiteTitle,
+			"Content":   template.HTML(tagBuf.String()),
 		})
 		if err != nil {
 			return err
 		}
 
 		// ファイル書き出し
-		path := filepath.Join(exportDir, "tags", t.Slug+".html")
+		path := filepath.Join(cfg.ExportDir, "tags", t.Slug+".html")
 		if err := os.WriteFile(path, finalBuf.Bytes(), 0644); err != nil {
 			return err
 		}

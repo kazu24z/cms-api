@@ -36,6 +36,7 @@ func (h *Handler) Export(c *gin.Context) {
 	cfg := Config{
 		ExportDir: s.ExportDir,
 		UploadDir: "./uploads",
+		SiteTitle: s.SiteTitle,
 	}
 	if err := h.service.Export(cfg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

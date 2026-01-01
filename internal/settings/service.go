@@ -11,6 +11,7 @@ const configFile = "config.json"
 
 var defaultSettings = Settings{
 	ExportDir: "/tmp/cms-export",
+	SiteTitle: "Blog",
 }
 
 type Service struct{}
@@ -32,6 +33,11 @@ func (s *Service) Get() (*Settings, error) {
 	var settings Settings
 	if err := json.Unmarshal(data, &settings); err != nil {
 		return nil, err
+	}
+
+	// デフォルト値を補完
+	if settings.SiteTitle == "" {
+		settings.SiteTitle = defaultSettings.SiteTitle
 	}
 
 	return &settings, nil
