@@ -71,6 +71,14 @@ func Migrate() error {
 		FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
 		FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 	);
+
+	CREATE TABLE IF NOT EXISTS templates (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT UNIQUE NOT NULL,
+		content TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 
 	_, err := DB.Exec(schema)

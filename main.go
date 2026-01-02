@@ -10,6 +10,7 @@ import (
 	"cms/internal/image"
 	"cms/internal/settings"
 	"cms/internal/tag"
+	"cms/internal/template"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,12 @@ func main() {
 	// マイグレーション
 	if err := db.Migrate(); err != nil {
 		log.Fatal("Failed to migrate database:", err)
+	}
+
+	// テンプレート初期化（デフォルトテンプレートをDBに投入）
+	templateService := template.NewService(db.DB)
+	if err := templateService.InitializeDefaults(); err != nil {
+		log.Fatal("Failed to initialize templates:", err)
 	}
 
 	r := gin.Default()
@@ -61,6 +68,9 @@ func main() {
 
 		settingsHandler := settings.NewHandler()
 		settingsHandler.RegisterRoutes(api)
+
+		templateHandler := template.NewHandler(db.DB)
+		templateHandler.RegisterRoutes(api)
 	}
 
 	r.Run(":8080")

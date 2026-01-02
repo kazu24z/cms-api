@@ -3,7 +3,6 @@ package export
 import (
 	"bytes"
 	"database/sql"
-	"embed"
 	"html/template"
 	"os"
 	"path/filepath"
@@ -12,18 +11,17 @@ import (
 	"cms/internal/article"
 	"cms/internal/category"
 	"cms/internal/tag"
+	tmpl "cms/internal/template"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/renderer/html"
 )
 
-//go:embed templates/*.html
-var defaultTemplateFS embed.FS
-
 type Service struct {
 	articleRepo  *article.Repository
 	categoryRepo *category.Repository
 	tagRepo      *tag.Repository
+	templateRepo *tmpl.Repository
 	md           goldmark.Markdown
 }
 
@@ -32,6 +30,7 @@ func NewService(db *sql.DB) *Service {
 		articleRepo:  article.NewRepository(db),
 		categoryRepo: category.NewRepository(db),
 		tagRepo:      tag.NewRepository(db),
+		templateRepo: tmpl.NewRepository(db),
 		md: goldmark.New(
 			goldmark.WithRendererOptions(html.WithUnsafe()),
 		),
@@ -45,8 +44,8 @@ type Config struct {
 }
 
 func (s *Service) Export(cfg Config) error {
-	// テンプレートをロード（カスタム優先）
-	tmpl, err := s.loadTemplates(cfg.ExportDir)
+	// テンプレートをDBからロード
+	t, err := s.loadTemplates()
 	if err != nil {
 		return err
 	}
@@ -72,23 +71,23 @@ func (s *Service) Export(cfg Config) error {
 
 	// 記事個別ページ生成
 	for _, a := range articles {
-		if err := s.exportArticle(cfg, tmpl, a); err != nil {
+		if err := s.exportArticle(cfg, t, a); err != nil {
 			return err
 		}
 	}
 
 	// 一覧ページ生成
-	if err := s.exportIndex(cfg, tmpl, articles); err != nil {
+	if err := s.exportIndex(cfg, t, articles); err != nil {
 		return err
 	}
 
 	// カテゴリ別一覧ページ生成
-	if err := s.exportCategories(cfg, tmpl); err != nil {
+	if err := s.exportCategories(cfg, t); err != nil {
 		return err
 	}
 
 	// タグ別一覧ページ生成
-	if err := s.exportTags(cfg, tmpl); err != nil {
+	if err := s.exportTags(cfg, t); err != nil {
 		return err
 	}
 
@@ -102,20 +101,26 @@ func (s *Service) Export(cfg Config) error {
 	return nil
 }
 
-func (s *Service) loadTemplates(exportDir string) (*template.Template, error) {
-	customDir := filepath.Join(exportDir, "_templates")
-
-	// カスタムテンプレートが存在するかチェック
-	if _, err := os.Stat(customDir); err == nil {
-		// カスタムテンプレートを使用
-		return template.ParseGlob(filepath.Join(customDir, "*.html"))
+func (s *Service) loadTemplates() (*template.Template, error) {
+	// DBからテンプレートを取得
+	templates, err := s.templateRepo.GetAll()
+	if err != nil {
+		return nil, err
 	}
 
-	// デフォルトテンプレートを使用
-	return template.ParseFS(defaultTemplateFS, "templates/*.html")
+	// template.Templateを構築
+	t := template.New("")
+	for _, tmplData := range templates {
+		_, err := t.New(tmplData.Name + ".html").Parse(tmplData.Content)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return t, nil
 }
 
-func (s *Service) exportArticle(cfg Config, tmpl *template.Template, a article.Article) error {
+func (s *Service) exportArticle(cfg Config, t *template.Template, a article.Article) error {
 	// 画像パスを変換: http://localhost:8080/api/images/ → ../images/ (postsフォルダからの相対パス)
 	content := strings.ReplaceAll(a.Content, "http://localhost:8080/api/images/", "../images/")
 
@@ -127,7 +132,7 @@ func (s *Service) exportArticle(cfg Config, tmpl *template.Template, a article.A
 
 	// 記事テンプレート
 	var articleBuf bytes.Buffer
-	err := tmpl.ExecuteTemplate(&articleBuf, "article.html", map[string]interface{}{
+	err := t.ExecuteTemplate(&articleBuf, "article.html", map[string]interface{}{
 		"Article": a,
 		"Content": template.HTML(contentBuf.String()),
 	})
@@ -137,7 +142,7 @@ func (s *Service) exportArticle(cfg Config, tmpl *template.Template, a article.A
 
 	// ベーステンプレート
 	var finalBuf bytes.Buffer
-	err = tmpl.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
+	err = t.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
 		"Title":     a.Title,
 		"SiteTitle": cfg.SiteTitle,
 		"Content":   template.HTML(articleBuf.String()),
@@ -151,10 +156,10 @@ func (s *Service) exportArticle(cfg Config, tmpl *template.Template, a article.A
 	return os.WriteFile(path, finalBuf.Bytes(), 0644)
 }
 
-func (s *Service) exportIndex(cfg Config, tmpl *template.Template, articles []article.Article) error {
+func (s *Service) exportIndex(cfg Config, t *template.Template, articles []article.Article) error {
 	// 一覧テンプレート
 	var indexBuf bytes.Buffer
-	err := tmpl.ExecuteTemplate(&indexBuf, "index.html", map[string]interface{}{
+	err := t.ExecuteTemplate(&indexBuf, "index.html", map[string]interface{}{
 		"Articles": articles,
 	})
 	if err != nil {
@@ -163,7 +168,7 @@ func (s *Service) exportIndex(cfg Config, tmpl *template.Template, articles []ar
 
 	// ベーステンプレート
 	var finalBuf bytes.Buffer
-	err = tmpl.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
+	err = t.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
 		"Title":     cfg.SiteTitle,
 		"SiteTitle": cfg.SiteTitle,
 		"Content":   template.HTML(indexBuf.String()),
@@ -177,7 +182,7 @@ func (s *Service) exportIndex(cfg Config, tmpl *template.Template, articles []ar
 	return os.WriteFile(path, finalBuf.Bytes(), 0644)
 }
 
-func (s *Service) exportCategories(cfg Config, tmpl *template.Template) error {
+func (s *Service) exportCategories(cfg Config, t *template.Template) error {
 	categories, err := s.categoryRepo.GetAll()
 	if err != nil {
 		return err
@@ -196,7 +201,7 @@ func (s *Service) exportCategories(cfg Config, tmpl *template.Template) error {
 
 		// カテゴリテンプレート
 		var categoryBuf bytes.Buffer
-		err = tmpl.ExecuteTemplate(&categoryBuf, "category.html", map[string]interface{}{
+		err = t.ExecuteTemplate(&categoryBuf, "category.html", map[string]interface{}{
 			"Category": c,
 			"Articles": articles,
 		})
@@ -206,7 +211,7 @@ func (s *Service) exportCategories(cfg Config, tmpl *template.Template) error {
 
 		// ベーステンプレート
 		var finalBuf bytes.Buffer
-		err = tmpl.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
+		err = t.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
 			"Title":     "カテゴリ: " + c.Name,
 			"SiteTitle": cfg.SiteTitle,
 			"Content":   template.HTML(categoryBuf.String()),
@@ -225,14 +230,14 @@ func (s *Service) exportCategories(cfg Config, tmpl *template.Template) error {
 	return nil
 }
 
-func (s *Service) exportTags(cfg Config, tmpl *template.Template) error {
+func (s *Service) exportTags(cfg Config, t *template.Template) error {
 	tags, err := s.tagRepo.GetAll()
 	if err != nil {
 		return err
 	}
 
-	for _, t := range tags {
-		articles, err := s.articleRepo.GetByTag(t.ID)
+	for _, tg := range tags {
+		articles, err := s.articleRepo.GetByTag(tg.ID)
 		if err != nil {
 			return err
 		}
@@ -244,8 +249,8 @@ func (s *Service) exportTags(cfg Config, tmpl *template.Template) error {
 
 		// タグテンプレート
 		var tagBuf bytes.Buffer
-		err = tmpl.ExecuteTemplate(&tagBuf, "tag.html", map[string]interface{}{
-			"Tag":      t,
+		err = t.ExecuteTemplate(&tagBuf, "tag.html", map[string]interface{}{
+			"Tag":      tg,
 			"Articles": articles,
 		})
 		if err != nil {
@@ -254,8 +259,8 @@ func (s *Service) exportTags(cfg Config, tmpl *template.Template) error {
 
 		// ベーステンプレート
 		var finalBuf bytes.Buffer
-		err = tmpl.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
-			"Title":     "タグ: " + t.Name,
+		err = t.ExecuteTemplate(&finalBuf, "base.html", map[string]interface{}{
+			"Title":     "タグ: " + tg.Name,
 			"SiteTitle": cfg.SiteTitle,
 			"Content":   template.HTML(tagBuf.String()),
 		})
@@ -264,7 +269,7 @@ func (s *Service) exportTags(cfg Config, tmpl *template.Template) error {
 		}
 
 		// ファイル書き出し
-		path := filepath.Join(cfg.ExportDir, "tags", t.Slug+".html")
+		path := filepath.Join(cfg.ExportDir, "tags", tg.Slug+".html")
 		if err := os.WriteFile(path, finalBuf.Bytes(), 0644); err != nil {
 			return err
 		}

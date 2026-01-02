@@ -96,6 +96,16 @@ internal/
 | article_id | INTEGER | FK → Article |
 | tag_id     | INTEGER | FK → Tag     |
 
+### Template（テンプレート）
+
+| カラム     | 型       | 説明                       |
+| ---------- | -------- | -------------------------- |
+| id         | INTEGER  | PK                         |
+| name       | TEXT     | テンプレート名（ユニーク） |
+| content    | TEXT     | テンプレート内容（HTML）   |
+| created_at | DATETIME | 作成日時                   |
+| updated_at | DATETIME | 更新日時                   |
+
 ## API エンドポイント
 
 ### 記事
@@ -126,6 +136,23 @@ internal/
 | PUT    | /api/tags/:id | タグ更新 |
 | DELETE | /api/tags/:id | タグ削除 |
 
+### テンプレート
+
+| Method | Path                 | 説明                             |
+| ------ | -------------------- | -------------------------------- |
+| GET    | /api/templates       | テンプレート一覧                 |
+| GET    | /api/templates/:name | テンプレート取得                 |
+| PUT    | /api/templates/:name | テンプレート更新                 |
+| POST   | /api/templates/reset | 全テンプレートをデフォルトに戻す |
+
+**テンプレート名:**
+
+- `base` - ベーステンプレート（HTML の骨格）
+- `article` - 記事個別ページ
+- `index` - 記事一覧ページ
+- `category` - カテゴリ別一覧ページ
+- `tag` - タグ別一覧ページ
+
 ### エクスポート（静的サイト生成）
 
 | Method | Path        | 説明                                               |
@@ -142,22 +169,39 @@ internal/
 
 ### テンプレート
 
-**優先順位：**
+テンプレートは **データベースで管理** されます。
 
-1. 出力先に `_templates/` があれば → カスタムテンプレート使用
-2. なければ → CMS 内蔵のデフォルトテンプレート使用
+- 初回起動時にデフォルトテンプレートが自動投入される
+- API または管理画面からカスタマイズ可能
+- `POST /api/templates/reset` でデフォルトに戻せる
 
-**カスタムテンプレートを使う場合：**
+**テンプレートの編集例（CLI）:**
 
+```bash
+# テンプレート一覧を取得
+curl http://localhost:8080/api/templates
+
+# 特定のテンプレートを取得
+curl http://localhost:8080/api/templates/base
+
+# テンプレートを更新
+curl -X PUT http://localhost:8080/api/templates/base \
+  -H "Content-Type: application/json" \
+  -d '{"content": "<!DOCTYPE html>..."}'
+
+# デフォルトにリセット
+curl -X POST http://localhost:8080/api/templates/reset
 ```
-{export_dir}/
-├── _templates/
-│   ├── base.html      ← ベーステンプレート（必須）
-│   ├── article.html   ← 記事個別ページ（必須）
-│   └── index.html     ← 一覧ページ（必須）
-├── index.html         ← 生成される
-└── posts/
-```
+
+**テンプレート変数:**
+
+| テンプレート | 使用可能な変数                                 |
+| ------------ | ---------------------------------------------- |
+| base         | `{{.Title}}`, `{{.SiteTitle}}`, `{{.Content}}` |
+| article      | `{{.Article}}`, `{{.Content}}`                 |
+| index        | `{{.Articles}}`                                |
+| category     | `{{.Category}}`, `{{.Articles}}`               |
+| tag          | `{{.Tag}}`, `{{.Articles}}`                    |
 
 テンプレートは Go の `html/template` 形式。
 

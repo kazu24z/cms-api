@@ -1,0 +1,4 @@
+SELECT id, name, content, created_at, updated_at
+FROM templates
+WHERE name = ?
+
