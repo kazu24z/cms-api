@@ -138,12 +138,14 @@ internal/
 
 ### テンプレート
 
-| Method | Path                 | 説明                             |
-| ------ | -------------------- | -------------------------------- |
-| GET    | /api/templates       | テンプレート一覧                 |
-| GET    | /api/templates/:name | テンプレート取得                 |
-| PUT    | /api/templates/:name | テンプレート更新                 |
-| POST   | /api/templates/reset | 全テンプレートをデフォルトに戻す |
+| Method | Path                        | 説明                             |
+| ------ | --------------------------- | -------------------------------- |
+| GET    | /api/templates              | テンプレート一覧                 |
+| GET    | /api/templates/:name        | テンプレート取得                 |
+| PUT    | /api/templates/:name        | テンプレート更新（JSON）         |
+| POST   | /api/templates/:name/upload | テンプレートファイルアップロード |
+| POST   | /api/templates/import       | ZIP一括インポート                |
+| POST   | /api/templates/reset        | 全テンプレートをデフォルトに戻す |
 
 **テンプレート名:**
 
@@ -174,6 +176,21 @@ internal/
 - 初回起動時にデフォルトテンプレートが自動投入される
 - API または管理画面からカスタマイズ可能
 - `POST /api/templates/reset` でデフォルトに戻せる
+
+**テンプレートのインポート例（CLI）:**
+
+```bash
+# 単一ファイルをアップロード
+curl -X POST http://localhost:8080/api/templates/base/upload \
+  -F "file=@base.html"
+
+# ZIP一括インポート
+curl -X POST http://localhost:8080/api/templates/import \
+  -F "file=@templates.zip"
+
+# デフォルトにリセット
+curl -X POST http://localhost:8080/api/templates/reset
+```
 
 **テンプレートの編集例（CLI）:**
 
