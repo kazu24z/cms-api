@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	if err := db.Init("cms.db"); err != nil {
+	if err := db.Init(); err != nil {
 		log.Fatal("Failed to connect database:", err)
 	}
 	defer db.Close()
