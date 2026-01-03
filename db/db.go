@@ -2,16 +2,46 @@ package db
 
 import (
 	"database/sql"
+	"embed"
+	"fmt"
 	"log"
+	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/mattn/go-sqlite3"
 )
 
+//go:embed migrations/sqlite3/*.sql
+var sqliteMigrationsFS embed.FS
+
+// TODO: PostgreSQL 対応時に追加
+// //go:embed migrations/postgres/*.sql
+// var postgresMigrationsFS embed.FS
+
 var DB *sql.DB
 
-func Init(dbPath string) error {
+// DBDriver は現在使用中のドライバ名
+var DBDriver string
+
+func Init() error {
+	DBDriver = os.Getenv("DB_DRIVER")
+	if DBDriver == "" {
+		DBDriver = "sqlite3" // デフォルト
+	}
+
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		if DBDriver == "sqlite3" {
+			dbURL = "cms.db"
+		} else {
+			return fmt.Errorf("DATABASE_URL is required for %s", DBDriver)
+		}
+	}
+
 	var err error
-	DB, err = sql.Open("sqlite3", dbPath)
+	DB, err = sql.Open(DBDriver, dbURL)
 	if err != nil {
 		return err
 	}
@@ -20,69 +50,40 @@ func Init(dbPath string) error {
 		return err
 	}
 
-	log.Println("Database connected:", dbPath)
+	log.Printf("Database connected: %s (%s)", DBDriver, dbURL)
 	return nil
 }
 
 func Migrate() error {
-	schema := `
-	CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		email TEXT UNIQUE NOT NULL,
-		password_hash TEXT NOT NULL,
-		name TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
+	var m *migrate.Migrate
 
-	CREATE TABLE IF NOT EXISTS categories (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		slug TEXT UNIQUE NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
+	switch DBDriver {
+	case "sqlite3":
+		sourceDriver, err := iofs.New(sqliteMigrationsFS, "migrations/sqlite3")
+		if err != nil {
+			return err
+		}
+		dbDriver, err := sqlite3.WithInstance(DB, &sqlite3.Config{})
+		if err != nil {
+			return err
+		}
+		m, err = migrate.NewWithInstance("iofs", sourceDriver, DBDriver, dbDriver)
+		if err != nil {
+			return err
+		}
 
-	CREATE TABLE IF NOT EXISTS tags (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT UNIQUE NOT NULL,
-		slug TEXT UNIQUE NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
+	case "postgres":
+		// TODO: PostgreSQL 対応時に実装
+		// 1. migrations/postgres/ にマイグレーションファイルを作成
+		// 2. //go:embed migrations/postgres/*.sql を有効化
+		// 3. ここのコメントを解除
+		return fmt.Errorf("postgres driver is not implemented yet. See README.md for setup instructions")
 
-	CREATE TABLE IF NOT EXISTS articles (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		title TEXT NOT NULL,
-		slug TEXT UNIQUE NOT NULL,
-		content TEXT NOT NULL,
-		status TEXT DEFAULT 'draft',
-		author_id INTEGER,
-		category_id INTEGER,
-		published_at DATETIME,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (author_id) REFERENCES users(id),
-		FOREIGN KEY (category_id) REFERENCES categories(id)
-	);
+	default:
+		return fmt.Errorf("unsupported database driver: %s", DBDriver)
+	}
 
-	CREATE TABLE IF NOT EXISTS article_tags (
-		article_id INTEGER NOT NULL,
-		tag_id INTEGER NOT NULL,
-		PRIMARY KEY (article_id, tag_id),
-		FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
-		FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-	);
-
-	CREATE TABLE IF NOT EXISTS templates (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT UNIQUE NOT NULL,
-		content TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-	`
-
-	_, err := DB.Exec(schema)
-	if err != nil {
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
 

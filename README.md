@@ -11,8 +11,9 @@ Go によるシンプルな CMS API サーバー
 ## 技術スタック
 
 - Go
-- SQLite3
+- SQLite3（ローカル開発）
 - Gin (Web フレームワーク)
+- golang-migrate（マイグレーション）
 
 ## アーキテクチャ
 
@@ -144,7 +145,7 @@ internal/
 | GET    | /api/templates/:name        | テンプレート取得                 |
 | PUT    | /api/templates/:name        | テンプレート更新（JSON）         |
 | POST   | /api/templates/:name/upload | テンプレートファイルアップロード |
-| POST   | /api/templates/import       | ZIP一括インポート                |
+| POST   | /api/templates/import       | ZIP 一括インポート               |
 | POST   | /api/templates/reset        | 全テンプレートをデフォルトに戻す |
 
 **テンプレート名:**
@@ -269,4 +270,77 @@ curl -X POST http://localhost:8080/api/templates/reset
 
 ```bash
 go run main.go
+```
+
+## Makefile コマンド
+
+```bash
+make build          # バイナリをビルド
+make run            # サーバー起動
+make migrate        # マイグレーション実行（アプリ経由）
+make migrate-down   # 1つロールバック
+make migrate-create # 新規マイグレーション作成
+make schema-dump    # スキーマを db/schema.sql にダンプ
+make db-reset       # DBを削除して再作成
+make help           # ヘルプ表示
+```
+
+## データベース
+
+### マイグレーション
+
+マイグレーションは [golang-migrate](https://github.com/golang-migrate/migrate) を使用。
+
+```
+db/migrations/
+├── sqlite3/              # SQLite用（ローカル開発）
+│   ├── 000001_create_users.up.sql
+│   ├── 000001_create_users.down.sql
+│   └── ...
+└── postgres/             # PostgreSQL用（サーバーデプロイ）
+    └── .gitkeep
+```
+
+### スキーマダンプ
+
+マイグレーション後にスキーマを出力：
+
+```bash
+make schema-dump
+# → db/schema.sql が生成される
+```
+
+## PostgreSQL を使う場合
+
+サーバーデプロイ時は PostgreSQL を推奨（Supabase / Neon / Vercel Postgres 等）。
+
+### 1. マイグレーションファイル作成
+
+`db/migrations/postgres/` に SQLite 用を参考に PostgreSQL 用を作成。
+
+### 2. db/db.go を修正
+
+```go
+// embed パスを変更
+//go:embed migrations/postgres/*.sql
+
+// import を変更
+import "github.com/golang-migrate/migrate/v4/database/postgres"
+import _ "github.com/lib/pq"
+
+// Init() で環境変数から接続
+DB, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+```
+
+### 3. 依存追加
+
+```bash
+go get github.com/lib/pq
+go get github.com/golang-migrate/migrate/v4/database/postgres
+```
+
+### 4. 環境変数を設定
+
+```bash
+DATABASE_URL="postgres://user:pass@host:5432/dbname?sslmode=require"
 ```

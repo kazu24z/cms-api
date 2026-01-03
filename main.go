@@ -17,8 +17,8 @@ import (
 )
 
 func main() {
-	// DB初期化
-	if err := db.Init("cms.db"); err != nil {
+	// DB初期化（環境変数 DB_DRIVER, DATABASE_URL で設定可能）
+	if err := db.Init(); err != nil {
 		log.Fatal("Failed to connect database:", err)
 	}
 	defer db.Close()
