@@ -163,9 +163,21 @@ func (r *Repository) SetArticleTags(articleID int64, tagIDs []int64) error {
 	return nil
 }
 
-func (r *Repository) Publish(id int64) (*Article, error) {
+func (r *Repository) ToggleStatus(id int64) (*Article, error) {
+	// 現在の状態を取得
+	article, err := r.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
-	_, err := r.db.Exec(queryPublish, now, now, id)
+	if article.Status == "draft" {
+		// draft → published
+		_, err = r.db.Exec(queryToggleToPublished, now, now, id)
+	} else {
+		// published → draft
+		_, err = r.db.Exec(queryToggleToDraft, now, id)
+	}
 	if err != nil {
 		return nil, err
 	}

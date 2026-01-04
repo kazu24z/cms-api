@@ -29,8 +29,8 @@ func (s *Service) Update(id int64, title, slug, content, status string, category
 	return s.repo.Update(id, title, slug, content, status, categoryID, tagIDs)
 }
 
-func (s *Service) Publish(id int64) (*Article, error) {
-	return s.repo.Publish(id)
+func (s *Service) ToggleStatus(id int64) (*Article, error) {
+	return s.repo.ToggleStatus(id)
 }
 
 func (s *Service) Delete(id int64) error {

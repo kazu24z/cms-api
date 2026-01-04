@@ -21,7 +21,7 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	r.GET("/articles/:id", h.GetByID)
 	r.POST("/articles", h.Create)
 	r.PUT("/articles/:id", h.Update)
-	r.POST("/articles/:id/publish", h.Publish)
+	r.POST("/articles/:id/toggle-status", h.ToggleStatus)
 	r.DELETE("/articles/:id", h.Delete)
 }
 
@@ -108,15 +108,19 @@ func (h *Handler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, article)
 }
 
-func (h *Handler) Publish(c *gin.Context) {
+func (h *Handler) ToggleStatus(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	article, err := h.service.Publish(id)
+	article, err := h.service.ToggleStatus(id)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "article not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
