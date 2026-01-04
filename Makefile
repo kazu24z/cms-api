@@ -1,4 +1,4 @@
-.PHONY: build run migrate migrate-down migrate-create schema-dump clean help
+.PHONY: build run serve import export migrate migrate-down migrate-create schema-dump clean help
 
 # 変数（環境変数で上書き可能）
 DB_DRIVER ?= sqlite3
@@ -15,13 +15,23 @@ BINARY := cms
 build:
 	go build -o $(BINARY) .
 
-# 実行
-run:
-	go run main.go
+# サーバー実行（旧run互換）
+run: build
+	./$(BINARY) serve
 
-# マイグレーション実行（アプリ経由）
-migrate: build
-	./$(BINARY) migrate
+# サーバー実行
+serve: build
+	./$(BINARY) serve
+
+# Markdownインポート
+# 使用例: make import FILE=article.md
+import: build
+	./$(BINARY) import $(FILE)
+
+# HTMLエクスポート
+# 使用例: make export OUTPUT=./dist
+export: build
+	./$(BINARY) export -o $(or $(OUTPUT),./dist)
 
 # マイグレーション実行（CLI）※ golang-migrate CLI が必要
 migrate-cli:
@@ -64,12 +74,18 @@ clean:
 help:
 	@echo "Usage:"
 	@echo "  make build          - Build the binary"
-	@echo "  make run            - Run the server"
-	@echo "  make migrate        - Run migrations (via app)"
+	@echo "  make run            - Run the server (alias: serve)"
+	@echo "  make serve          - Run the server"
+	@echo "  make import FILE=x  - Import markdown file to DB"
+	@echo "  make export         - Export articles to HTML (OUTPUT=./dist)"
 	@echo "  make migrate-cli    - Run migrations (via CLI, requires golang-migrate)"
 	@echo "  make migrate-down   - Rollback one migration"
 	@echo "  make migrate-create - Create new migration file"
 	@echo "  make schema-dump    - Dump schema to db/schema.sql"
 	@echo "  make db-reset       - Delete DB and recreate"
 	@echo "  make clean          - Remove binary"
-
+	@echo ""
+	@echo "CLI Commands (after build):"
+	@echo "  ./cms serve         - Start API server"
+	@echo "  ./cms import <file> - Import markdown to DB"
+	@echo "  ./cms export        - Export to HTML"

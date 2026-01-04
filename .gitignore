@@ -14,3 +14,9 @@ config.json
 
 # Uploaded files
 uploads/
+
+# Dist
+dist/
+
+# Exported HTML files
+dist/

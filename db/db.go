@@ -83,6 +83,11 @@ func Migrate() error {
 		return fmt.Errorf("unsupported database driver: %s", DBDriver)
 	}
 
+	// dirtyフラグをクリア（マイグレーション失敗時の復旧）
+	if DBDriver == "sqlite3" {
+		_, _ = DB.Exec("UPDATE schema_migrations SET dirty = 0 WHERE dirty = 1")
+	}
+
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
