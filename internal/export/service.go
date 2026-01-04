@@ -91,6 +91,11 @@ func (s *Service) Export(cfg Config) error {
 		return err
 	}
 
+	// 不要ファイル削除（下書きに戻した記事のHTMLなど）
+	if err := s.cleanupOrphanedFiles(cfg, articles); err != nil {
+		return err
+	}
+
 	// 画像ファイルをコピー
 	if cfg.UploadDir != "" {
 		if err := s.copyImages(cfg.UploadDir, cfg.ExportDir); err != nil {
@@ -306,6 +311,82 @@ func (s *Service) copyImages(uploadDir, exportDir string) error {
 
 		if err := copyFile(srcPath, dstPath); err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) cleanupOrphanedFiles(cfg Config, publishedArticles []article.Article) error {
+	// 公開済み記事のslugセットを作成
+	publishedSlugs := make(map[string]bool)
+	for _, a := range publishedArticles {
+		publishedSlugs[a.Slug] = true
+	}
+
+	// 公開済み記事が含まれるカテゴリ・タグのslugセットを作成
+	publishedCategorySlugs := make(map[string]bool)
+	publishedTagSlugs := make(map[string]bool)
+
+	for _, a := range publishedArticles {
+		if a.Category != nil {
+			publishedCategorySlugs[a.Category.Slug] = true
+		}
+		for _, tag := range a.Tags {
+			publishedTagSlugs[tag.Slug] = true
+		}
+	}
+
+	// posts/ディレクトリの不要ファイルを削除
+	if err := s.cleanupDirectory(cfg.ExportDir, "posts", publishedSlugs); err != nil {
+		return err
+	}
+
+	// categories/ディレクトリの不要ファイルを削除
+	if err := s.cleanupDirectory(cfg.ExportDir, "categories", publishedCategorySlugs); err != nil {
+		return err
+	}
+
+	// tags/ディレクトリの不要ファイルを削除
+	if err := s.cleanupDirectory(cfg.ExportDir, "tags", publishedTagSlugs); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) cleanupDirectory(exportDir, subdir string, validSlugs map[string]bool) error {
+	dir := filepath.Join(exportDir, subdir)
+
+	// ディレクトリが存在しない場合はスキップ
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return nil
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		// .htmlファイルのみ処理
+		if !strings.HasSuffix(entry.Name(), ".html") {
+			continue
+		}
+
+		// slugを抽出（例: "article-slug.html" → "article-slug"）
+		slug := strings.TrimSuffix(entry.Name(), ".html")
+
+		// 公開済みリストに含まれていない場合は削除
+		if !validSlugs[slug] {
+			filePath := filepath.Join(dir, entry.Name())
+			if err := os.Remove(filePath); err != nil {
+				return err
+			}
 		}
 	}
 
