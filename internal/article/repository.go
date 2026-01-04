@@ -163,6 +163,15 @@ func (r *Repository) SetArticleTags(articleID int64, tagIDs []int64) error {
 	return nil
 }
 
+func (r *Repository) Publish(id int64) (*Article, error) {
+	now := time.Now()
+	_, err := r.db.Exec(queryPublish, now, now, id)
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(id)
+}
+
 func (r *Repository) ToggleStatus(id int64) (*Article, error) {
 	// 現在の状態を取得
 	article, err := r.GetByID(id)

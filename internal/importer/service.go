@@ -85,7 +85,7 @@ func (s *Service) ImportMarkdown(filePath string) (*article.Article, error) {
 	}
 
 	// 記事作成（authorID=1をデフォルトとする）
-	return s.articleService.Create(
+	article, err := s.articleService.Create(
 		frontMatter.Title,
 		frontMatter.Slug,
 		body,
@@ -94,6 +94,16 @@ func (s *Service) ImportMarkdown(filePath string) (*article.Article, error) {
 		categoryID,
 		tagIDs,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	// statusが"published"の場合は、published_atを設定するためにPublishを呼ぶ
+	if frontMatter.Status == "published" {
+		return s.articleService.Publish(article.ID)
+	}
+
+	return article, nil
 }
 
 // parseFrontMatter はフロントマターと本文を分離

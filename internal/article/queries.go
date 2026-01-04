@@ -23,6 +23,7 @@ var (
 	queryUpdate            = loadQuery("update.sql")
 	queryToggleToPublished = loadQuery("toggle_to_published.sql")
 	queryToggleToDraft     = loadQuery("toggle_to_draft.sql")
+	queryPublish           = loadQuery("toggle_to_published.sql") // Publishも同じSQLを使用
 	queryDelete            = loadQuery("delete.sql")
 	queryDeleteTags        = loadQuery("delete_tags.sql")
 	queryInsertTag         = loadQuery("insert_tag.sql")
